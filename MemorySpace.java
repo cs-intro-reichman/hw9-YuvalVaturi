@@ -2,6 +2,9 @@
  * Represents a managed memory space. The memory space manages a list of allocated 
  * memory blocks, and a list free memory blocks. The methods "malloc" and "free" are 
  * used, respectively, for creating new blocks and recycling existing blocks.
+ * 
+ * 
+ * java MemorySpace.java
  */
 public class MemorySpace {
 	
@@ -58,7 +61,24 @@ public class MemorySpace {
 	 * @return the base address of the allocated block, or -1 if unable to allocate
 	 */
 	public int malloc(int length) {		
-		//// Replace the following statement with your code
+		for (int i = 0; i < freeList.getSize(); i++) {
+			MemoryBlock freeBlock = freeList.getBlock(i);
+	
+			if (freeBlock.length >= length) {
+				MemoryBlock allocatedBlock = new MemoryBlock(freeBlock.baseAddress, length);
+	
+				allocatedList.addLast(allocatedBlock);
+	
+				if (freeBlock.length == length) {
+					freeList.remove(i); 
+				} else {
+					freeBlock.baseAddress += length;
+					freeBlock.length -= length;
+				}
+	
+				return allocatedBlock.baseAddress;
+			}
+		}
 		return -1;
 	}
 
@@ -71,8 +91,16 @@ public class MemorySpace {
 	 *            the starting address of the block to freeList
 	 */
 	public void free(int address) {
-		//// Write your code here
-	}
+		for (int i = 0; i < allocatedList.getSize(); i++) {
+			MemoryBlock allocatedBlock = allocatedList.getBlock(i);
+	
+			if (allocatedBlock.baseAddress == address) {
+				allocatedList.remove(i);
+				freeList.addLast(allocatedBlock);
+				return;
+			}
+		}
+		throw new IllegalArgumentException("Memory block with the given address not found.");	}
 	
 	/**
 	 * A textual representation of the free list and the allocated list of this memory space, 
@@ -88,6 +116,19 @@ public class MemorySpace {
 	 * In this implementation Malloc does not call defrag.
 	 */
 	public void defrag() {
-		//// Write your code here
+		int index = 0;
+
+		while (index < freeList.getSize() - 1) {
+			MemoryBlock current = freeList.getBlock(index);
+			MemoryBlock next = freeList.getBlock(index + 1);
+	
+			if (current.baseAddress + current.length == next.baseAddress) {
+				current.length += next.length;
+	
+				freeList.remove(index + 1);
+			} else {
+				index++;
+			}
+		}
 	}
 }

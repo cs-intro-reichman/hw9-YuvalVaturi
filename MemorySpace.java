@@ -133,10 +133,10 @@ public class MemorySpace {
 		MemoryBlock prev = freeList.getBlock(0);
 		for (int i = 1; i < freeList.getSize(); i++) {
 			MemoryBlock current = freeList.getBlock(i);
-	
 			if (prev.baseAddress + prev.length == current.baseAddress) {
 				prev.length += current.length;
-			} else {
+			} 
+			else {
 				newFreeList.addLast(prev);
 				prev = current;
 			}

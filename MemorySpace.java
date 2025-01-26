@@ -1,3 +1,7 @@
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+
 public class MemorySpace {
 	
 	// A list of the memory blocks that are presently allocated
@@ -123,62 +127,50 @@ public class MemorySpace {
 	 * In this implementation Malloc does not call defrag.
 	 */
 	public void defrag() {
-		if (freeList.getSize() <= 1) {
-			return;
-		}
-		sortFreeList();
-		LinkedList newFreeList = new LinkedList();
-	
-
-		MemoryBlock prev = freeList.getBlock(0);
-		for (int i = 1; i < freeList.getSize(); i++) {
-			MemoryBlock current = freeList.getBlock(i);
-			if (prev.baseAddress + prev.length == current.baseAddress) {
-				prev.length += current.length;
-			} 
-			else {
-				newFreeList.addLast(prev);
-				prev = current;
-			}
-		}
-	
-		newFreeList.addLast(prev);
-	
-		freeList = newFreeList;
-	}
-
-	public void sortFreeList() {
-		for (int i = 0; i < freeList.getSize() - 1; i++) {
-			for (int j = 0; j < freeList.getSize() - i - 1; j++) {
-				MemoryBlock current = freeList.getBlock(j);
-				MemoryBlock next = freeList.getBlock(j + 1);
-	
-				if (current.baseAddress > next.baseAddress) {
-					int tempAddress = current.baseAddress;
-					int tempLength = current.length;
-					current.baseAddress = next.baseAddress;
-					current.length = next.length;
-					next.baseAddress = tempAddress;
-					next.length = tempLength;
+			boolean checker1 = true;
+			boolean checker2 = true;
+			Node currentNode = freeList.getFirst();
+		
+			while (currentNode != null) {
+				Node temp = freeList.getFirst();
+				while (temp != null) {
+					if (currentNode.block.baseAddress + currentNode.block.length == temp.block.baseAddress) {
+						currentNode.block.length += temp.block.length;
+						Node remv = temp;
+						temp = temp.next;
+						freeList.remove(remv.block);
+						checker1 = false;
+						checker2 = false;
+					}
+		
+					if (checker2) {
+						temp = temp.next;
+					}
+					checker2 = true;
 				}
+		
+				if (checker1) {
+					currentNode = currentNode.next;
+				}
+				checker1 = true;
 			}
+			
 		}
-	}
 
 	public String toString() {
-		StringBuilder sb = new StringBuilder();
+		StringBuilder str = new StringBuilder();
 		for (int i = 0; i < freeList.getSize(); i++) {
 			if (freeList.getBlock(i) != null){
-				sb.append(freeList.getBlock(i)).append(" ");
+				str.append(freeList.getBlock(i)).append(" ");
 			}
 		}
-		sb.append("\n");
+		str.append("\n");
 		for (int i = 0; i < allocatedList.getSize(); i++) {
 			if (allocatedList.getBlock(i) != null){
-				sb.append(allocatedList.getBlock(i)).append(" ");
+				str.append(allocatedList.getBlock(i)).append(" ");
 			}
 		}
 		
-		return sb.toString();
+		return str.toString();
 	}
 }

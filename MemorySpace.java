@@ -61,25 +61,35 @@ public class MemorySpace {
 	 * @return the base address of the allocated block, or -1 if unable to allocate
 	 */
 	public int malloc(int length) {		
-		for (int i = 0; i < freeList.getSize(); i++) {
-			MemoryBlock freeBlock = freeList.getBlock(i);
-	
-			if (freeBlock.length >= length) {
-				MemoryBlock allocatedBlock = new MemoryBlock(freeBlock.baseAddress, length);
-	
-				allocatedList.addLast(allocatedBlock);
-	
-				if (freeBlock.length == length) {
-					freeList.remove(i); 
-				} else {
-					freeBlock.baseAddress += length;
-					freeBlock.length -= length;
-				}
-	
-				return allocatedBlock.baseAddress;
-			}
+		ListIterator iterator = freeList.iterator();
+		int index = 0;
+		boolean blockFound = false;
+		
+		while(iterator.hasNext()){
+			if(freeList.getBlock(index).length >= length){
+				blockFound = true;
+				break;
+			};
+			index++;
 		}
-		return -1;
+
+		if (!blockFound) {
+			return -1;
+		}
+
+		int allNewBase = freeList.getBlock(index).baseAddress;
+		MemoryBlock newMemory = new MemoryBlock(allNewBase, length);
+		allocatedList.add(allocatedList.getSize(), newMemory);
+
+		int freeNewBase = freeList.getBlock(index).baseAddress + length;
+		int freeNewLength = freeList.getBlock(index).length - length;
+		if(freeNewLength == 0){
+			freeList.remove(index);
+		} else {
+			MemoryBlock updatedMemory = new MemoryBlock(freeNewBase, freeNewLength);
+			freeList.getNode(index).block = updatedMemory;
+		}
+		return(allNewBase);
 	}
 
 	/**
@@ -91,16 +101,23 @@ public class MemorySpace {
 	 *            the starting address of the block to freeList
 	 */
 	public void free(int address) {
-		for (int i = 0; i < allocatedList.getSize(); i++) {
-			MemoryBlock allocatedBlock = allocatedList.getBlock(i);
-	
-			if (allocatedBlock.baseAddress == address) {
-				allocatedList.remove(i);
-				freeList.addLast(allocatedBlock);
-				return;
+		ListIterator iterator2 = allocatedList.iterator();
+		int index = 0;
+		boolean blockFound = false;
+		while(iterator2.hasNext()){
+			if(allocatedList.getBlock(index).baseAddress == address){
+				blockFound = true;
+				break;
 			}
+			index++;
 		}
-		throw new IllegalArgumentException("Memory block with the given address not found.");	}
+		if(!blockFound){
+			return;
+		}
+		freeList.addLast(allocatedList.getBlock(index));
+		allocatedList.remove(index);
+		return;
+	}
 	
 	/**
 	 * A textual representation of the free list and the allocated list of this memory space, 

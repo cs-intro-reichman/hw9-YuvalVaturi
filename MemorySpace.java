@@ -71,19 +71,46 @@ public class MemorySpace {
 	 * @return the base address of the allocated block, or -1 if unable to allocate
 	 */
 	public int malloc(int length) {
-		ListIterator freeIterator = freeList.iterator();
-		while (freeIterator.hasNext()) {
-			MemoryBlock curBlockFree = freeIterator.next();
-			if (curBlockFree.length >= length) {
-				MemoryBlock newBlockAlloc = new MemoryBlock(curBlockFree.baseAddress, length);
-				allocatedList.addLast(newBlockAlloc);
-				if (curBlockFree.length > length) {
-					curBlockFree.baseAddress += length;
-					curBlockFree.length -= length;
-				} else {
-					freeList.remove(curBlockFree);
+		if (length <= 0) {
+			return -1;
+		}
+
+		for (int i = 0; i < freeList.getSize(); i++) {
+			MemoryBlock freeBlock = freeList.getBlock(i);
+			if (freeBlock.length == length) {
+				allocatedList.addLast(freeBlock);
+				freeList.remove(freeBlock);
+			}
+			if (freeBlock.length >= length) {
+				MemoryBlock allocatedBlock = new MemoryBlock(freeBlock.baseAddress, length);
+
+				freeBlock.baseAddress += length;
+				freeBlock.length -= length;
+
+				if (freeBlock.length == 0) {
+					freeList.remove(freeBlock);
 				}
-				return newBlockAlloc.baseAddress;
+
+				allocatedList.addLast(allocatedBlock);
+				return allocatedBlock.baseAddress;
+			}
+		}
+		defrag();
+		for (int i = 0; i < freeList.getSize(); i++) {
+			MemoryBlock freeBlock = freeList.getBlock(i);
+			if (freeBlock.length == length) {
+				allocatedList.addLast(freeBlock);
+				freeList.remove(freeBlock);
+			}
+			if (freeBlock.length >= length) {
+				MemoryBlock allocatedBlock = new MemoryBlock(freeBlock.baseAddress, length);
+				freeBlock.baseAddress += length;
+				freeBlock.length -= length;
+				if (freeBlock.length == 0) {
+					freeList.remove(i);
+				}
+				allocatedList.addLast(allocatedBlock);
+				return allocatedBlock.baseAddress;
 			}
 		}
 		return -1;
@@ -97,19 +124,24 @@ public class MemorySpace {
 	 * @param baseAddress
 	 *                    the starting address of the block to freeList
 	 */
+	// public void free(int address) {
+	// for (int i = 0; i < allocatedList.getSize();i ++){
+	// if (allocatedList.getBlock(i).baseAddress == address) {
+	// freeList.addLast(allocatedList.getBlock(i));
+	// allocatedList.remove(i);
+	// }
+	// }
+	// }
+
 	public void free(int address) {
-		if (allocatedList.getSize() == 0) {
-			throw new IllegalArgumentException("index must be between 0 and size");
-		}
-		ListIterator allocIterator = allocatedList.iterator();
-		while (allocIterator.hasNext()) {
-			MemoryBlock curBlockAlloc = allocIterator.next();
-			if (curBlockAlloc.baseAddress == address) {
-				allocatedList.remove(curBlockAlloc);
-				freeList.addLast(curBlockAlloc);
-				return;
+		for (int i = 0; i < allocatedList.getSize(); i++) {
+			MemoryBlock allocatedBlock = allocatedList.getBlock(i);
+			if (allocatedBlock.baseAddress == address) {
+				freeList.addLast(allocatedBlock);
+				allocatedList.remove(i);
 			}
 		}
+		throw new IllegalArgumentException("index must be between 0 and size");
 	}
 
 	/**
@@ -118,7 +150,7 @@ public class MemorySpace {
 	 * for debugging purposes.
 	 */
 	public String toString() {
-		return freeList.toString() + "\n" + allocatedList.toString();
+		return freeList.toString() + "\n" + allocatedList.toString() + "\n";
 	}
 
 	/**
@@ -127,20 +159,41 @@ public class MemorySpace {
 	 * requested size.
 	 * In this implementation Malloc does not call defrag.
 	 */
+	// public void defrag() {
+	// for (int i = 0; i < this.freeList.getSize();i ++){
+	// for (int j = 0;j < this.freeList.getSize(); j ++){
+	// if ((freeList.getBlock(i).baseAddress + freeList.getBlock(i).length) ==
+	// freeList.getBlock(j).baseAddress) {
+	// freeList.getBlock(i).length = freeList.getBlock(i).length +
+	// freeList.getBlock(j).length;
+	// freeList.remove(j);
+	// i = 0;
+	// j = 0;
+	// }else if (freeList.getBlock(j).baseAddress + freeList.getBlock(j).length ==
+	// freeList.getBlock(i).baseAddress) {
+	// freeList.getBlock(j).length = freeList.getBlock(j).length +
+	// freeList.getBlock(i).length;
+	// freeList.remove(i);
+	// i = 0;
+	// j = 0;
+	// }
+
+	// }
+	// }
+	// }
+
 	public void defrag() {
-		ListIterator firstFreeIterator = freeList.iterator();
-		while (firstFreeIterator.hasNext()) {
-			MemoryBlock curBlock = firstFreeIterator.next();
-			ListIterator secondFreeIterator = freeList.iterator();
-			while (secondFreeIterator.hasNext()) {
-				MemoryBlock nextBlock = secondFreeIterator.next();
-				if (curBlock != nextBlock) {
-					if (curBlock.baseAddress + curBlock.length == nextBlock.baseAddress) {
-						curBlock.length += nextBlock.length;
-						freeList.remove(nextBlock);
-						secondFreeIterator = freeList.iterator();
-					}
-				}
+		Node current = freeList.getFirst();
+
+		while (current != null && current.next != null) {
+			MemoryBlock currentBlock = current.block;
+			MemoryBlock nextBlock = current.next.block;
+
+			if (currentBlock.baseAddress + currentBlock.length == nextBlock.baseAddress) {
+				currentBlock.length += nextBlock.length;
+				current.next = current.next.next;
+			} else {
+				current = current.next;
 			}
 		}
 	}
